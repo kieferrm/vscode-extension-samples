@@ -25,6 +25,8 @@ documents.listen(connection);
 let workspaceRoot: string;
 connection.onInitialize((params): InitializeResult => {
 	workspaceRoot = params.rootPath;
+	// Do something with the workspaceRoot ...
+	console.log(`workspaceRoot: ${workspaceRoot}`);
 	return {
 		capabilities: {
 			// Tell the client that the server works in FULL text document sync mode
