@@ -6,7 +6,7 @@
 
 import {
 	IPCMessageReader, IPCMessageWriter, createConnection, IConnection, TextDocuments, TextDocument, 
-	Diagnostic, DiagnosticSeverity, InitializeResult, TextDocumentPositionParams, CompletionItem, 
+	Diagnostic, DiagnosticRelatedInfo, DiagnosticSeverity, InitializeResult, TextDocumentPositionParams, CompletionItem, 
 	CompletionItemKind
 } from 'vscode-languageserver';
 
@@ -76,6 +76,24 @@ function validateTextDocument(textDocument: TextDocument): void {
 		let index = line.indexOf('typescript');
 		if (index >= 0) {
 			problems++;
+
+			let relatedInfo: {[uri:string]: DiagnosticRelatedInfo[] } = {};
+			relatedInfo[textDocument.uri] = [
+				{
+					range: {
+						start: { line: i, character: index },
+						end: { line: i, character: index + 10 }
+					},
+					message: 'Because that is the way it has to be'
+				},
+				{
+					range: {
+						start: { line: i, character: index },
+						end: { line: i, character: index + 10 }
+					},
+					message: 'No questions asked.'
+				}
+			];
 			diagnostics.push({
 				severity: DiagnosticSeverity.Warning,
 				range: {
@@ -83,7 +101,8 @@ function validateTextDocument(textDocument: TextDocument): void {
 					end: { line: i, character: index + 10 }
 				},
 				message: `${line.substr(index, 10)} should be spelled TypeScript`,
-				source: 'ex'
+				source: 'ex',
+				relatedInfo
 			});
 		}
 	}
