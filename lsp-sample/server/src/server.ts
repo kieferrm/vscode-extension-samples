@@ -5,8 +5,8 @@
 'use strict';
 
 import {
-	IPCMessageReader, IPCMessageWriter, createConnection, IConnection, TextDocuments, TextDocument, 
-	Diagnostic, DiagnosticRelatedInfo, DiagnosticSeverity, InitializeResult, TextDocumentPositionParams, CompletionItem, 
+	IPCMessageReader, IPCMessageWriter, createConnection, IConnection, TextDocuments, TextDocument,
+	Diagnostic, DiagnosticSeverity, InitializeResult, TextDocumentPositionParams, CompletionItem,
 	CompletionItemKind
 } from 'vscode-languageserver';
 
@@ -20,9 +20,13 @@ let documents: TextDocuments = new TextDocuments();
 // for open, change and close text document events
 documents.listen(connection);
 
+
+let shouldSendDiagnosticRelatedInformation: boolean = false;
+
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities.
 connection.onInitialize((_params): InitializeResult => {
+	shouldSendDiagnosticRelatedInformation = _params.capabilities && _params.capabilities.diagnosticRelatedInformation;
 	return {
 		capabilities: {
 			// Tell the client that the server works in FULL text document sync mode
@@ -73,33 +77,40 @@ function validateTextDocument(textDocument: TextDocument): void {
 		if (index >= 0) {
 			problems++;
 
-			let relatedInfo: {[uri:string]: DiagnosticRelatedInfo[] } = {};
-			relatedInfo[textDocument.uri] = [
-				{
-					range: {
-						start: { line: i, character: index },
-						end: { line: i, character: index + 10 }
-					},
-					message: 'Because that is the way it has to be'
-				},
-				{
-					range: {
-						start: { line: i, character: index },
-						end: { line: i, character: index + 10 }
-					},
-					message: 'No questions asked.'
-				}
-			];
-			diagnostics.push({
+			let diagnosic: Diagnostic = {
 				severity: DiagnosticSeverity.Warning,
 				range: {
 					start: { line: i, character: index },
 					end: { line: i, character: index + 10 }
 				},
 				message: `${line.substr(index, 10)} should be spelled TypeScript`,
-				source: 'ex',
-				relatedInfo
-			});
+				source: 'ex'
+			};
+			if (shouldSendDiagnosticRelatedInformation) {
+				diagnosic.relatedInformation = [
+					{
+						location: {
+							uri: textDocument.uri,
+							range: {
+								start: { line: i, character: index },
+								end: { line: i, character: index + 10 }
+							}
+						},
+						message: 'Spelling matters'
+					},
+					{
+						location: {
+							uri: textDocument.uri,
+							range: {
+								start: { line: i, character: index },
+								end: { line: i, character: index + 10 }
+							}
+						},
+						message: 'Particularly for names'
+					}
+				];
+			}
+			diagnostics.push(diagnosic);
 		}
 	}
 	// Send the computed diagnostics to VSCode.
